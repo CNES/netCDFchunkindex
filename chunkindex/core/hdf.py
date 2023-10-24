@@ -39,28 +39,40 @@ def create_index(index_path: str | os.PathLike, dataset: str | os.PathLike, span
         }
     }
 
+    def _index_variable(name, item):
+
+        # Do not process groups
+        if isinstance(item, h5py.Group):
+            return
+
+        # Do not process variables that are not dimensions
+        if item.is_scale:
+            return
+
+        #  Only process regular variables
+
+        # Get the chunk size for that variable
+        chunk_size = item.chunks
+        # Get the variable id to access low-level HDF5 API and iterate over its chunks
+        dsid = item.id
+
+        def gen_index(chunk):
+            # Read the compressed data from the chunk
+            compressed_data = dsid.read_direct_chunk(chunk.chunk_offset)[1]
+            # Create the zran index for that chunk with one index point every SPAN uncompressed bytes
+            index = chunkindex.core.zran_xarray.create_index(compressed_data, span=span)
+            # Define the name of the chunk: e.g. var/0.1
+            chunk_id = name + '/' + chunkid_str(chunk.chunk_offset, chunk_size)
+            # Write the zran_xarray index to the netcdf file
+            index.to_netcdf(index_path, group=chunk_id, mode="a", encoding=encoding)
+
+        # Loop over all the chunks in that variable
+        dsid.chunk_iter(gen_index)
+
     # Open the netCDF dataset
     with h5py.File(dataset) as ds:
-        # Process all variables that are not dimensions
-        for var in filter(lambda v: not ds[v].is_scale, ds.keys()):
-
-            # Get the chunk size for that variable
-            chunk_size = ds[var].chunks
-            # Get the variable id to access low-level HDF5 API and iterate over its chunks
-            dsid = ds[var].id
-
-            def gen_index(chunk):
-                # Read the compressed data from the chunk
-                compressed_data = dsid.read_direct_chunk(chunk.chunk_offset)[1]
-                # Create the zran index for that chunk with one index point every SPAN uncompressed bytes
-                index = chunkindex.core.zran_xarray.create_index(compressed_data, span=span)
-                # Define the name of the chunk: e.g. var/0.1
-                chunk_id = var + '/' + chunkid_str(chunk.chunk_offset, chunk_size)
-                # Write the zran_xarray index to the netcdf file
-                index.to_netcdf(index_path, group=chunk_id, mode="a", encoding=encoding)
-
-            # Loop over all the chunks in that variable
-            dsid.chunk_iter(gen_index)
+        # Create an index for each variable in the dataset
+        ds.visititems(_index_variable)
 
 
 def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
@@ -74,7 +86,7 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
 
         with open("dataset.nc", mode='rb') as ds:
             with open("dataset_index.nc", mode='rb') as index:
-                chunkindex.read_slice(ds, index, "my_nc_variable", ((300, 305), (300, 305)))
+                chunkindex.read_slice(ds, index, "my_group/my_nc_variable", ((300, 305), (300, 305)))
 
     :param dataset: the opened file object of the NetCDF-4/HDF5 dataset.
     :param index: an opened file object that contains the index data in netCDF-4 format.

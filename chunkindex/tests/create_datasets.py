@@ -1,9 +1,10 @@
-import io
 from pathlib import Path
 import xarray as xr
 import numpy as np
 import json
 import kerchunk.hdf
+import os
+import contextlib
 
 
 def create_netcdf_dataset_test() -> Path:
@@ -39,8 +40,16 @@ def create_netcdf_dataset_test() -> Path:
             'chunksizes': chunk_size
         }
     }
+
+    # Remove it if it already exists
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(dataset_path)
+
     # Write the dataset to a netcdf file
     ds.to_netcdf(dataset_path, encoding=encoding)
+
+    # Write the same dataset but in group "group_1"
+    ds.to_netcdf(dataset_path, group="group_1", mode="a", encoding=encoding)
 
     return dataset_path
 
@@ -59,4 +68,3 @@ def create_kerchunk_index(dataset_path: Path) -> Path:
         f_out.write(json.dumps(h5chunks))
 
     return json_path
-
