@@ -24,15 +24,28 @@ def create_netcdf_dataset_test() -> Path:
     # Create the dataset : a ramp with n samples
     x = np.arange(n)
     x = x.reshape(shape).astype(dtype)
-
+    y = x.copy()
+    y[0:10,2] = -999
+    
     # Create a data array with xarray
     x_xr = xr.DataArray(x)
+    y_xr = xr.DataArray(y)
     # Create a dataset
-    ds = xr.Dataset({'x': x_xr})
+    ds = xr.Dataset({'x': x_xr, 'y': y_xr,})
+
+    # Add attribute to variable y
+    ds['y'].attrs = {'_FillValue': -999, 'scale_factor': 2, 'add_offset': 100}
 
     # Define the encoding options
     encoding = {
         'x': {
+            'dtype': dtype,
+            'zlib': True,
+            'complevel': 1,
+            'shuffle': False,
+            'chunksizes': chunk_size
+        },
+        'y': {
             'dtype': dtype,
             'zlib': True,
             'complevel': 1,

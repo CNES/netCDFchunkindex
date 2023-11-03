@@ -9,6 +9,7 @@ from chunkindex.util.multi_dimensional_slice import MultiDimensionalSlice
 
 SPAN = 102400  # 100kB
 WINDOW_LENGTH = chunkindex.core.zran_index.WINDOW_LENGTH
+MASKANDSCALE = True
 
 
 def chunkid_str(chunk_offset: tuple[int], chunk_size: tuple[int]) -> str:
@@ -76,7 +77,8 @@ def create_index(index_path: str | os.PathLike, dataset: str | os.PathLike, span
 
 
 def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
-               nd_slice: MultiDimensionalSlice | Iterable[slice] | Iterable[tuple]):
+               nd_slice: MultiDimensionalSlice | Iterable[slice] | Iterable[tuple],
+               maskandscale=MASKANDSCALE):
     """
     Read a slice of data from within a variable in a HDF5 dataset.
 
@@ -92,6 +94,7 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
     :param index: an opened file object that contains the index data in netCDF-4 format.
     :param var: the name of the dataset variable we want to access to.
     :param nd_slice: slice or multidimensional slice corresponding to the data to access in the variable `var`.
+    :param maskandscale: turn on or off automatic conversion of data (apply scale_factor and add_offset) and masked Fillvalue
     :return: the slice of data read.
     """
 
@@ -103,6 +106,26 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
 
         # Get the dataset variable var
         dsvar = ds[var]
+
+        # If maskandscale is activated get attribute
+        if maskandscale:
+            # Get the list of attribute of variable var
+            liste_att = dsvar.attrs.keys()
+            # get _FillValue attribute if exists
+            if '_FillValue' in liste_att:
+                fillvalue = dsvar.attrs['_FillValue'][0]
+            else:
+                fillvalue = False
+            # get scale_factor attribute if exists
+            if 'scale_factor' in liste_att:
+                scale_factor = dsvar.attrs['scale_factor'][0]
+            else:
+                scale_factor = 1
+            # get offset attribute if exists
+            if 'add_offset' in liste_att:
+                offset = dsvar.attrs['add_offset'][0]
+            else:
+                offset = 0
 
         # Get the chunks shape
         chunk_size = dsvar.chunks
@@ -179,5 +202,15 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
                     decompressed_byte_array, dtype=dsvar.dtype)
                 fake_chunk = fake_chunk.reshape(chunk_size)
                 fake_var[chunk_slice_intersection] = fake_chunk[slice_in_chunk]
+
+    # Apply scale_factor, offset and mask Fillvalue data
+    if maskandscale:
+        if fillvalue:
+            # Apply mask and scaling
+            fake_var = np.ma.masked_where(fake_var==fillvalue, fake_var)*scale_factor + offset
+        else:
+            # No fillvalue, apply only scaling
+            fake_var = fake_var*scale_factor + offset
+
 
     return fake_var[nd_slice]
