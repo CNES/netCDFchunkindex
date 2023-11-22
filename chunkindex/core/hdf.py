@@ -4,12 +4,14 @@ from typing import Iterable, BinaryIO
 import h5py
 import numpy as np
 import chunkindex.core.zran_xarray
+import chunkindex.core.zran_h5py
 import chunkindex.core.zran_index
 from chunkindex.util.multi_dimensional_slice import MultiDimensionalSlice
 
 SPAN = 102400  # 100kB
 WINDOW_LENGTH = chunkindex.core.zran_index.WINDOW_LENGTH
 MASKANDSCALE = True
+METHOD = 'h5py'
 
 
 def chunkid_str(chunk_offset: tuple[int], chunk_size: tuple[int]) -> str:
@@ -78,7 +80,7 @@ def create_index(index_path: str | os.PathLike, dataset: str | os.PathLike, span
 
 def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
                nd_slice: MultiDimensionalSlice | Iterable[slice] | Iterable[tuple],
-               maskandscale=MASKANDSCALE):
+               maskandscale=MASKANDSCALE, method: str=METHOD):
     """
     Read a slice of data from within a variable in a HDF5 dataset.
 
@@ -95,6 +97,7 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
     :param var: the name of the dataset variable we want to access to.
     :param nd_slice: slice or multidimensional slice corresponding to the data to access in the variable `var`.
     :param maskandscale: turn on or off automatic conversion of data (apply scale_factor and add_offset) and masked Fillvalue
+    :param method: select which lib to use h5py or xarray
     :return: the slice of data read.
     """
 
@@ -190,9 +193,12 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
             # Define the name of the group in the index: e.g. var/0.1
             index_group = var + '/' + chunkid_str(chunk_offset, chunk_size)
             # Open the index
-            with chunkindex.core.zran_xarray.open_index(index, group=index_group) as zindex:
-                # Decompress the data
-                decompressed_byte_array = zindex.decompress(dataset, offset_in_chunk*bps, length_in_chunk*bps,
+            if method == 'h5py':
+                zindex = chunkindex.core.zran_h5py.open_index(index, group=index_group)
+            else:
+                zindex = chunkindex.core.zran_xarray.open_index(index, group=index_group)
+            # Decompress the data
+            decompressed_byte_array = zindex.decompress(dataset, offset_in_chunk*bps, length_in_chunk*bps,
                                                             shuffle=dsvar.shuffle, bps=bps, whence=1)
 
             # Fill the fake chunk with the decompressed data
