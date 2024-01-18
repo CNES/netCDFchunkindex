@@ -171,7 +171,7 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
                 [slice(s.start - o, s.stop - o, s.step) for s, o in zip(chunk_slice_intersection, chunk_origin)])
 
             # Compute the index of the slice in the chunk
-            slice_indices = np.reshape(range(np.prod(chunk_size)), chunk_size)[slice_in_chunk].flatten()
+            slice_indices = np.arange(0, np.prod(chunk_size)).reshape(chunk_size)[slice_in_chunk].flatten()
             offset_in_chunk = slice_indices[0]
             length_in_chunk = slice_indices[-1] - offset_in_chunk + 1
 
