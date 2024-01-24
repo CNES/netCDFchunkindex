@@ -49,7 +49,7 @@ class Index(zran.Index):
         """
         pass
 
-    def __init__(self, compressed_size: int, uncompressed_size: int, points: list[zran.Point]):
+    def __init__(self, compressed_size: int, uncompressed_size: int, points: list[zran.Point], span: int):
         """
         Create a ZranIndex index object.
 
@@ -69,13 +69,10 @@ class Index(zran.Index):
         super().__init__(mode=MODE_ZLIB, compressed_size=compressed_size, uncompressed_size=uncompressed_size,
                          have=len(points), points=points)
 
-    @cached_property
-    def outloc(self):
-        return [p.outloc for p in self.points]
-
-    @cached_property
-    def inloc(self):
-        return [p.inloc for p in self.points]
+        # Get the location of the index points in the uncompressed stream (out) and compressed stream (in)
+        self.outloc = [p.outloc for p in self.points]
+        self.inloc = [p.inloc for p in self.points]
+        self.span = span
 
     def get_point(self, loc: int) -> zran.Point:
         """
@@ -84,10 +81,8 @@ class Index(zran.Index):
         :param loc: location (in bytes) in the decompressed data
         :return: the closest zran index point before loc
         """
-        # Get the location of the index points in the uncompressed stream (out) and compressed stream (in)
-        outloc = [p.outloc for p in self.points]
         # Find the index points the closest before the offset
-        lo = bisect.bisect(outloc, loc) - 1
+        lo = bisect.bisect(self.outloc, loc) - 1
         return self.points[lo]
 
     # Read and decompress only the required amount of data
@@ -133,7 +128,7 @@ class Index(zran.Index):
         # Create an index object
         index = Index(points=[new_index_point],
                       compressed_size=int(self.compressed_size - offset_in),
-                      uncompressed_size=int(self.uncompressed_size - offset_out))
+                      uncompressed_size=int(self.uncompressed_size - offset_out), span=self.span)
 
         # Find the location in the compressed data of the index point after the data we want to retrieve,
         # i.e. after offset + length in the uncompressed data
@@ -185,4 +180,4 @@ def create_index(*args, **kwargs):
     index = zran.Index.create_index(*args, **kwargs)
     return Index(compressed_size=index.compressed_size,
                  uncompressed_size=index.uncompressed_size,
-                 points=index.points)
+                 points=index.points, span=kwargs['span'])

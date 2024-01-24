@@ -10,7 +10,7 @@ class Index(zran_index.Index):
     The zran_h5py.Index handles a zran index stored in a h5py dataset.
     """
 
-    def __init__(self, index: zran_index.Index | xarray.Dataset):
+    def __init__(self, index: zran_index.Index | h5._hl.group.Group):
         """
         Create a xarray dataset that contains the zran index data.
 
@@ -55,14 +55,15 @@ class Index(zran_index.Index):
                 attrs={
                     'uncompressed_size': index.uncompressed_size,
                     'compressed_size': index.compressed_size,
-                    'mode': index.mode
+                    'mode': index.mode,
+                    'span': index.span
                 }
             )
         elif isinstance(index, h5._hl.group.Group):
             # TODO: check the index variables and attributes
             self.ds = index
         else:
-            raise TypeError("A ZranIndex or a xarray.Dataset is required to build a ZranXarrayDataset")
+            raise TypeError("A ZranIndex or a h5._hl.group.Group is required to build a ZranXarrayDataset")
 
     @cached_property
     def outloc(self):
@@ -91,6 +92,10 @@ class Index(zran_index.Index):
     @cached_property
     def mode(self):
         return self.ds.attrs['mode'][0]
+
+    @cached_property
+    def span(self):
+        return self.ds.attrs['span'][0]
 
     @cached_property
     def win(self):

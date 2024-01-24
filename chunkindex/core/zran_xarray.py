@@ -54,7 +54,8 @@ class Index(zran_index.Index):
                 attrs={
                     'uncompressed_size': index.uncompressed_size,
                     'compressed_size': index.compressed_size,
-                    'mode': index.mode
+                    'mode': index.mode,
+                    'span': index.span
                 }
             )
         elif isinstance(index, xarray.Dataset):
@@ -90,6 +91,10 @@ class Index(zran_index.Index):
     @cached_property
     def mode(self):
         return self.ds.mode
+
+    @cached_property
+    def span(self):
+        return self.ds.span
 
     @cached_property
     def win(self):
