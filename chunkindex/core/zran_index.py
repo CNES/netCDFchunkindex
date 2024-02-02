@@ -9,7 +9,6 @@ MODE_ZLIB = 15
 WINDOW_LENGTH = 32768
 
 
-@lru_cache
 def read_offset(f: BinaryIO, offset: int, length: int, whence: 0 | 1 | 2 = 0) -> bytes:
     """
     Read data from file starting from an offset.
