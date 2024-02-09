@@ -58,7 +58,7 @@ def create_index(index_path: str | os.PathLike, dataset: str | os.PathLike, span
         chunk_size = item.chunks
         # Get the variable id to access low-level HDF5 API and iterate over its chunks
         dsid = item.id
-        span = ceil(item.nbytes/dsid.get_num_chunks()/3)
+        span = min(ceil(item.nbytes/dsid.get_num_chunks()/3), 2000000)
 
         def gen_index(chunk):
             # Read the compressed data from the chunk
