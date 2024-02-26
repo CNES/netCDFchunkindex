@@ -145,6 +145,8 @@ variables:
 
 test-unitaire:
   stage: python-test
+
+  script:
     - mkdir -p ${CONDA_ENVS_DIRS}
     - conda env create -f environment.yml
     - source activate netcdf-streaming-env
