@@ -1,0 +1,16 @@
+name: netcdf-streaming-env
+dependancies:
+ - python=3.10
+ - numpy
+ - h5py
+ - xarray
+ - netCDF4
+ - fsspec
+ - s3fs
+ - zarr
+ - certifi
+ - hdf5
+ - Cython
+ - h5netcdf
+ - boto3
+ - pip
