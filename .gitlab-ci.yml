@@ -8,22 +8,8 @@ workflow:
       when: never
     - if: $CI_COMMIT_BRANCH
 
-# Fonctionnalité SAST
-# Nécessite stage "test" et la variable CI_TEMPLATE_REGISTRY_HOST
-# Peut être personnalisé https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
-# Note: il y a actuellement un bug dans l'execution du rapport dans les MR, en cours de correction côté Gitlab
-# Note 2 : Dans l'exemple, nous utilisons le dernier template de SAST Gitlab-CI qui permet de pouvoir exécuter l'analyse en phase de Merge request
-include:
-  - template: Jobs/SAST.latest.gitlab-ci.yml
-
 stages:
   - python-test
-  #  - init
-  #  - quality
-  #  - test # Step for SAST
-  #  - package
-  #  - deploy
-  #  - xray-scan
 
 # Default configuration for all jobs
 default:
