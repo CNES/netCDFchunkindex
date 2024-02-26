@@ -29,12 +29,31 @@ class TestZranReferenceFileSystem(unittest.TestCase):
     def test_ZranReferenceFileSystem(self):
         # Check the keys
         expected_keys = ['.zgroup',
+                         'group_1/.zgroup',
+                         'group_1/x/.zarray',
+                         'group_1/x/.zattrs',
+                         'group_1/x/0.0',
+                         'group_1/x/0.1',
+                         'group_1/x/1.0',
+                         'group_1/x/1.1',
+                         'group_1/y/.zarray',
+                         'group_1/y/.zattrs',
+                         'group_1/y/0.0',
+                         'group_1/y/0.1',
+                         'group_1/y/1.0',
+                         'group_1/y/1.1',
                          'x/.zarray',
                          'x/.zattrs',
                          'x/0.0',
                          'x/0.1',
                          'x/1.0',
                          'x/1.1',
+                         'y/.zarray',
+                         'y/.zattrs',
+                         'y/0.0',
+                         'y/0.1',
+                         'y/1.0',
+                         'y/1.1'
                          ]
         self.assertTrue(all(k == e for k, e in zip(self.fs.get_mapper().keys(), expected_keys)))
 

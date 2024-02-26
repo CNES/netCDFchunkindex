@@ -1,14 +1,17 @@
 import os
 from typing import Iterable, BinaryIO
-
+from math import ceil
 import h5py
 import numpy as np
 import chunkindex.core.zran_xarray
+import chunkindex.core.zran_h5py
 import chunkindex.core.zran_index
 from chunkindex.util.multi_dimensional_slice import MultiDimensionalSlice
 
 SPAN = 102400  # 100kB
 WINDOW_LENGTH = chunkindex.core.zran_index.WINDOW_LENGTH
+MASKANDSCALE = True
+METHOD = 'h5py'
 
 
 def chunkid_str(chunk_offset: tuple[int], chunk_size: tuple[int]) -> str:
@@ -55,6 +58,7 @@ def create_index(index_path: str | os.PathLike, dataset: str | os.PathLike, span
         chunk_size = item.chunks
         # Get the variable id to access low-level HDF5 API and iterate over its chunks
         dsid = item.id
+        span = min(ceil(item.nbytes/dsid.get_num_chunks()/3), 2000000)
 
         def gen_index(chunk):
             # Read the compressed data from the chunk
@@ -76,7 +80,8 @@ def create_index(index_path: str | os.PathLike, dataset: str | os.PathLike, span
 
 
 def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
-               nd_slice: MultiDimensionalSlice | Iterable[slice] | Iterable[tuple]):
+               nd_slice: MultiDimensionalSlice | Iterable[slice] | Iterable[tuple],
+               maskandscale=MASKANDSCALE, method: str=METHOD):
     """
     Read a slice of data from within a variable in a HDF5 dataset.
 
@@ -92,6 +97,8 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
     :param index: an opened file object that contains the index data in netCDF-4 format.
     :param var: the name of the dataset variable we want to access to.
     :param nd_slice: slice or multidimensional slice corresponding to the data to access in the variable `var`.
+    :param maskandscale: turn on or off automatic conversion of data (apply scale_factor and add_offset) and masked Fillvalue
+    :param method: select which lib to use h5py or xarray
     :return: the slice of data read.
     """
 
@@ -103,6 +110,26 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
 
         # Get the dataset variable var
         dsvar = ds[var]
+
+        # If maskandscale is activated get attribute
+        if maskandscale:
+            # Get the list of attribute of variable var
+            liste_att = dsvar.attrs.keys()
+            # get _FillValue attribute if exists
+            if '_FillValue' in liste_att:
+                fillvalue = dsvar.attrs['_FillValue'][0]
+            else:
+                fillvalue = False
+            # get scale_factor attribute if exists
+            if 'scale_factor' in liste_att:
+                scale_factor = dsvar.attrs['scale_factor'][0]
+            else:
+                scale_factor = 1
+            # get offset attribute if exists
+            if 'add_offset' in liste_att:
+                offset = dsvar.attrs['add_offset'][0]
+            else:
+                offset = 0
 
         # Get the chunks shape
         chunk_size = dsvar.chunks
@@ -145,7 +172,7 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
                 [slice(s.start - o, s.stop - o, s.step) for s, o in zip(chunk_slice_intersection, chunk_origin)])
 
             # Compute the index of the slice in the chunk
-            slice_indices = np.reshape(range(np.prod(chunk_size)), chunk_size)[slice_in_chunk].flatten()
+            slice_indices = np.arange(0, np.prod(chunk_size)).reshape(chunk_size)[slice_in_chunk].flatten()
             offset_in_chunk = slice_indices[0]
             length_in_chunk = slice_indices[-1] - offset_in_chunk + 1
 
@@ -167,9 +194,12 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
             # Define the name of the group in the index: e.g. var/0.1
             index_group = var + '/' + chunkid_str(chunk_offset, chunk_size)
             # Open the index
-            with chunkindex.core.zran_xarray.open_index(index, group=index_group) as zindex:
-                # Decompress the data
-                decompressed_byte_array = zindex.decompress(dataset, offset_in_chunk*bps, length_in_chunk*bps,
+            if method == 'h5py':
+                zindex = chunkindex.core.zran_h5py.open_index(index, group=index_group)
+            else:
+                zindex = chunkindex.core.zran_xarray.open_index(index, group=index_group)
+            # Decompress the data
+            decompressed_byte_array = zindex.decompress(dataset, offset_in_chunk*bps, length_in_chunk*bps,
                                                             shuffle=dsvar.shuffle, bps=bps, whence=1)
 
             # Fill the fake chunk with the decompressed data
@@ -179,5 +209,15 @@ def read_slice(dataset: BinaryIO, index: BinaryIO, var: str,
                     decompressed_byte_array, dtype=dsvar.dtype)
                 fake_chunk = fake_chunk.reshape(chunk_size)
                 fake_var[chunk_slice_intersection] = fake_chunk[slice_in_chunk]
+
+    # Apply scale_factor, offset and mask Fillvalue data
+    if maskandscale:
+        if fillvalue:
+            # Apply mask and scaling
+            fake_var = np.ma.masked_where(fake_var==fillvalue, fake_var)*scale_factor + offset
+        else:
+            # No fillvalue, apply only scaling
+            fake_var = fake_var*scale_factor + offset
+
 
     return fake_var[nd_slice]

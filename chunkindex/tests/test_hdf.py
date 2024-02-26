@@ -70,6 +70,19 @@ class TestHdf(unittest.TestCase):
                 check_read_slice(MultiDimensionalSlice((slice(1, 2), slice(0, 10))))
                 check_read_slice(MultiDimensionalSlice((slice(300, 305), slice(300, 305))))
 
+    def test_hdf_read_data_with_attribute(self):
+
+        with open(self.dataset, 'rb') as ds:
+            with open(self.index, mode='rb') as index:
+
+                def check_read_slice(nd_slice):
+                    decompressed_data = chunkindex.read_slice(ds, index, 'y', nd_slice, maskandscale=True)
+                    self.assertTrue(np.allclose(decompressed_data, xr.open_dataset(self.dataset).y[nd_slice].values, equal_nan=True))
+
+                check_read_slice(MultiDimensionalSlice((slice(0, 1), slice(0, 10))))
+                check_read_slice(MultiDimensionalSlice((slice(1, 2), slice(0, 10))))
+                check_read_slice(MultiDimensionalSlice((slice(300, 305), slice(300, 305))))
+
 
 if __name__ == '__main__':
     unittest.main()

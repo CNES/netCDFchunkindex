@@ -1,4 +1,5 @@
 import xarray
+import h5py as h5
 from chunkindex.core import zran_index
 import numpy as np
 from functools import cached_property
@@ -6,10 +7,10 @@ from functools import cached_property
 
 class Index(zran_index.Index):
     """
-    The zran_xarray.Index handles a zran index stored in a xarray dataset.
+    The zran_h5py.Index handles a zran index stored in a h5py dataset.
     """
 
-    def __init__(self, index: zran_index.Index | xarray.Dataset):
+    def __init__(self, index: zran_index.Index | h5._hl.group.Group):
         """
         Create a xarray dataset that contains the zran index data.
 
@@ -58,43 +59,43 @@ class Index(zran_index.Index):
                     'span': index.span
                 }
             )
-        elif isinstance(index, xarray.Dataset):
+        elif isinstance(index, h5._hl.group.Group):
             # TODO: check the index variables and attributes
             self.ds = index
         else:
-            raise TypeError("A ZranIndex or a xarray.Dataset is required to build a ZranXarrayDataset")
+            raise TypeError("A ZranIndex or a h5._hl.group.Group is required to build a ZranXarrayDataset")
 
     @cached_property
     def outloc(self):
-        return self.ds.outloc.values
+        return self.ds['outloc'][:]
 
     @cached_property
     def inloc(self):
-        return self.ds.inloc.values
+        return self.ds['inloc'][:]
 
     @cached_property
     def bits(self):
-        return self.ds.bits.values
+        return self.ds['bits'][:]
 
     @cached_property
     def window(self):
-        return self.ds.window.values
+        return self.ds['window'][:]
 
     @cached_property
     def uncompressed_size(self):
-        return self.ds.uncompressed_size
+        return self.ds.attrs['uncompressed_size'][0]
 
     @cached_property
     def compressed_size(self):
-        return self.ds.compressed_size
+        return self.ds.attrs['compressed_size'][0]
 
     @cached_property
     def mode(self):
-        return self.ds.mode
+        return self.ds.attrs['mode'][0]
 
     @cached_property
     def span(self):
-        return self.ds.span
+        return self.ds.attrs['span'][0]
 
     @cached_property
     def win(self):
@@ -108,12 +109,12 @@ class Index(zran_index.Index):
         :return: the closest zran index point before outloc as a ZranIndex.Point object
         """
         # Get the location of the closest index point before loc
-        outloc = self.ds.outloc.sel(outloc=loc, method='ffill').values
+        outloc = np.searchsorted(self.ds['outloc'][:], loc, side='right') - 1
         # Create the zran index point
-        return zran_index.Index.Point(outloc=outloc,
-                                      inloc=self.ds.inloc.sel(outloc=outloc).values,
-                                      bits=self.ds.bits.sel(outloc=outloc).values,
-                                      window=self.ds.window.sel(outloc=outloc).values.tobytes())
+        return zran_index.Index.Point(outloc=self.ds['outloc'][outloc],
+                                      inloc=self.ds['inloc'][outloc],
+                                      bits=self.ds['bits'][outloc],
+                                      window=self.ds['window'][outloc].tobytes())
 
     def to_index(self) -> zran_index.Index:
         """
@@ -142,9 +143,7 @@ class Index(zran_index.Index):
 
     # Define __enter__() and __exit()__ methods to allow the context manager
     # i.e. allow using the with statement as follow:
-    #    with zran_xarray.open_dataset(index_file) as index:
-    def __enter__(self):
-        return Index(self.ds.__enter__())
+    # Remove __enter__ method because not available on h5py
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.ds.__exit__(exc_type, exc_val, exc_tb)
@@ -160,7 +159,7 @@ def create_index(*args, **kwargs):
 
 def open_index(*args, **kwargs):
     """
-    Overloads xarray.open_dataset() method.
+    Overloads h5.File() method.
     """
-    ds = xarray.open_dataset(*args, **kwargs)
+    ds = h5.File(*args)[kwargs['group']]
     return Index(ds)
