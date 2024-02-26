@@ -19,7 +19,7 @@ class TestZranIndex(unittest.TestCase):
         # Create a new index using only one point (the last one)
         last_point = index.points[-1]
         new_index = Index(points=[last_point], uncompressed_size=index.uncompressed_size,
-                          compressed_size=index.compressed_size)
+                          compressed_size=index.compressed_size, span=100 * 1024)
 
         # print(index.points[-1])
         # print(index.points[-1].window[:10])
