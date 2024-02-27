@@ -9,7 +9,7 @@ workflow:
     - if: $CI_COMMIT_BRANCH
 
 stages:
-  - python-test
+  - init
 
 # Default configuration for all jobs
 default:
@@ -128,6 +128,42 @@ variables:
   PIP_SSL_VERIFY: "${CNES_CERTIFICATE}"
   REQUESTS_CA_BUNDLE: "${CNES_CERTIFICATE}"
   
+
+build-env:
+  stage: init
+  image: ${ARTIFACTORY_URL}/${TAG_IMAGE_CONDA}
+  before_script:
+    # Création de l'environnement virtuel conda
+    - mkdir -p ${CONDA_ENVS_DIRS}
+    - conda env create -f environment.yml
+    # Activation de l'environnement, le nom de l'environnement est dans le fichier yaml
+    - source activate netcdf-streaming-env
+    - conda install curl
+    # Installation de Jfrog CLI 2.14.0 (18 mars 2022)
+    - curl -sS --cacert ${CNES_CERTIFICATE} -u ${ARTIFACTORY_USER}:${ARTIFACTORY_TOKEN} -O "https://${ARTIFACTORY_HOST}/artifactory/jfrog-cli-go-remote/${JFROG_VERSION}/${JFROG_OS}/jfrog"
+    # On donne les permissions pour utiliser la commande jfrog
+    - chmod 755 jfrog
+    # Définition d'un UUID unique
+    - export UUID=$(cat /proc/sys/kernel/random/uuid)
+    # Export de UUID pour le faire passer entre les jobs
+    - touch uuid.txt
+    - echo ${UUID} > uuid.txt
+    # Ajout des certificats du CNES dans jfrog CLI pour accéder à Artifactory en HTTPS
+    - mkdir -p "${JFROG_CLI_HOME_DIR}security/certs/"
+    - cp ${CNES_CERTIFICATE} "${JFROG_CLI_HOME_DIR}security/certs/"
+  script:
+    # Configuration de jfrog CLI
+    - ./jfrog config add ${UUID} --artifactory-url=https://${ARTIFACTORY_HOST}/artifactory  --access-token=${ARTIFACTORY_TOKEN}
+    # Configuration du dépôt pip
+    - ./jfrog pip-config --server-id-resolve=${UUID} --repo-resolve=pypi
+    # Installation des requirements du projet
+    - ./jfrog rt pip-install -r requirements_dev.txt --no-cache-dir --force-reinstall
+    - conda deactivate
+  timeout: 15 minutes
+  artifacts:
+    untracked: true
+    expire_in: 1 day
+
 
 test-unitaire:
   stage: python-test
