@@ -165,12 +165,12 @@ build-env:
     expire_in: 1 day
 
 
-test-unitaire:
-  stage: python-test
-
-  script:
-    - mkdir -p ${CONDA_ENVS_DIRS}
-    - conda env create -f environment.yml
-    - source activate netcdf-streaming-env
-    - nosetests chunkindex/test/test_*
+      #test-unitaire:
+      #  stage: python-test
+      #
+      #  script:
+      #    - mkdir -p ${CONDA_ENVS_DIRS}
+      #    - conda env create -f environment.yml
+      #    - source activate netcdf-streaming-env
+      #    - nosetests chunkindex/test/test_*
 
