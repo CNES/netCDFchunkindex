@@ -307,10 +307,11 @@ class ReadDataNetCDF(ReadData):
             resultats = super().multiple_launch(self.read_direct_h5py)
             message = 'NetCDF4_h5py'
             super().enregistrer_resultat(message, *resultats)
-            # Test lecture du fichier avec lighttpd fsspec et h5py
-            resultats = super().multiple_launch(self.read_lighttpd_fsspec_h5py)
-            message = 'NetCDF4_fsspec_h5py'
-            super().enregistrer_resultat(message, *resultats)
+            if (self.config.get('TEST_LIGHTTPD')):
+                # Test lecture du fichier avec lighttpd fsspec et h5py
+                resultats = super().multiple_launch(self.read_lighttpd_fsspec_h5py)
+                message = 'NetCDF4_fsspec_h5py'
+                super().enregistrer_resultat(message, *resultats)
 
 
         if (self.config.get('XARRAY_TEST')):
@@ -318,22 +319,30 @@ class ReadDataNetCDF(ReadData):
             resultats = super().multiple_launch(self.read_direct_xarray)
             message = 'NetCDF4_xarray'
             super().enregistrer_resultat(message, *resultats)
-            # Test lecture du fichier avec lighttpd fsspec et xarray
-            resultats = super().multiple_launch(self.read_lighttpd_fsspec_xarray)
-            message = 'NetCDF4_fsspec_xarray'
-            super().enregistrer_resultat(message, *resultats)
+            if (self.config.get('TEST_LIGHTTPD')):
+                # Test lecture du fichier avec lighttpd fsspec et xarray
+                resultats = super().multiple_launch(self.read_lighttpd_fsspec_xarray)
+                message = 'NetCDF4_fsspec_xarray'
+                super().enregistrer_resultat(message, *resultats)
        
         if (self.config.get('CHUNKINDEX_TEST')):
-            # Test lecture du fichier avec lighttpd chunkindex h5py local
+            if (self.config.get('TEST_LIGHTTPD')):
+                # Test lecture du fichier avec lighttpd chunkindex h5py local
+                resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_local)
+                message = 'chunkindex_fsspec_local'
+                super().enregistrer_resultat(message, *resultats)
+                # Test lecture du fichier avec lighttpd chunkindex h5py remote
+                resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_remote)
+                message = 'chunkindex_fsspec_remote'
+                super().enregistrer_resultat(message, *resultats)
+            # Test lecture du fichier en direct avec chunkindex h5py local
             resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_local)
             message = 'chunkindex_local'
             super().enregistrer_resultat(message, *resultats)
-            # Test lecture du fichier avec lighttpd chunkindex h5py remote
+            # Test lecture du fichier en direct avec chunkindex h5py remote
             resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_remote)
             message = 'chunkindex_remote'
             super().enregistrer_resultat(message, *resultats)
-
-
 
 
 
@@ -360,6 +369,51 @@ class ReadDataZarr(ReadData):
         # Define the url for dataset
         self.url_dataset_zarr = urllib.parse.urljoin(self.base_url, self.config.get('ZARR_FILE'))
         print('Test performance on file: ' + str(self.url_dataset_zarr))
+
+    def read_direct_zarr(self):
+        with zarr.open(self.dataset_path) as zarr_ds:
+            data = zarr_ds[self.variable][self.slice_data]
+            liste_att = zarr_ds[self.variable].attrs.keys()
+            if '_FillValue' in liste_att:
+                fillvalue = zarr_ds[self.variable].attrs['_FillValue']
+            else:
+                fillvalue = False
+            print('fillvalue ' + str(fillvalue))
+            if 'missing_value' in liste_att:
+                missing_value = zarr_ds[self.variable].attrs['missing_value']
+                print('missing_value: ' + str(missing_value))
+                if not fillvalue:
+                    fillvalue = missing_value
+            print('fillvalue ' + str(fillvalue))
+            if 'scale_factor' in liste_att:
+                scale_factor = zarr_ds[self.variable].attrs['scale_factor']
+            else:
+                scale_factor = 1
+            if 'offset' in liste_att:
+                offset = zarr_ds[self.variable].attrs['offset']
+            else:
+                offset = 0
+            # How missing_value and _FillValue are managed in zarr ?
+            # Topic : https://github.com/pydata/xarray/issues/5475
+            if fillvalue:
+                data = numpy.where(data==fillvalue, numpy.nan, data)*scale_factor + offset
+            else:
+                data = data*scale_factor + offset
+            print(numpy.nanmax(data))
+            assert(numpy.allclose(data, self.ref_data, equal_nan=True))
+
+
+    def read_direct_zarr_xarray(self):
+        if (len(self.variable.split('/')) > 1):
+            args={'group': self.variable.rsplit('/', 1)[0]}
+            variable = self.variable.split('/')[-1]
+        else:
+            args = dict()
+            variable = self.variable
+        with xarray.open_zarr(self.dataset_path, consolidated=True, decode_times=False, **args) as dataset:
+            data = dataset[variable][self.slice_data]
+            print(numpy.nanmax(data))
+            assert(numpy.allclose(data, self.ref_data, equal_nan=True))
 
 
     def read_lighttpd_zarr(self):
@@ -416,13 +470,24 @@ class ReadDataZarr(ReadData):
         if (self.config.get('ZARR_TEST')):
 
             # ZARR
-            # Test lecture du fichier zarr avec lighttpd et zarr
-            resultats = super().multiple_launch(self.read_lighttpd_zarr)
+            if (self.config.get('TEST_LIGHTTPD')):
+                # Test lecture du fichier zarr avec lighttpd et zarr
+                resultats = super().multiple_launch(self.read_lighttpd_zarr)
+                message = 'zarr_fsspec'
+                super().enregistrer_resultat(message, *resultats)
+
+                # Test lecture du fichier zarr avec lighttpd et xarray
+                resultats = super().multiple_launch(self.read_lighttpd_zarr_xarray)
+                message = 'zarr_fsspec_xarray'
+                super().enregistrer_resultat(message, *resultats)
+
+            # Test lecture du fichier zarr en direct
+            resultats = super().multiple_launch(self.read_direct_zarr)
             message = 'zarr'
             super().enregistrer_resultat(message, *resultats)
 
-            # Test lecture du fichier zarr avec lighttpd et xarray
-            resultats = super().multiple_launch(self.read_lighttpd_zarr_xarray)
+            # Test lecture du fichier zarr en direct avec xarray
+            resultats = super().multiple_launch(self.read_direct_zarr_xarray)
             message = 'zarr_xarray'
             super().enregistrer_resultat(message, *resultats)
 
@@ -499,6 +564,44 @@ class ReadDataNcZarr(ReadData):
             print(data.max().values)
             assert(numpy.allclose(data.values, self.ref_data, equal_nan=True))
 
+    def read_direct_nczarr_zarr(self):
+        with zarr.open(self.dataset_path) as zarr_ds:
+            data = zarr_ds[self.variable][self.slice_data]
+            liste_att = zarr_ds[self.variable].attrs.keys()
+            if '_FillValue' in liste_att:
+                fillvalue = zarr_ds[self.variable].attrs['_FillValue']
+            else:
+                fillvalue = False
+
+            print('fillvalue ' + str(fillvalue))
+            if 'scale_factor' in liste_att:
+                scale_factor = zarr_ds[self.variable].attrs['scale_factor']
+            else:
+                scale_factor = 1
+            if 'offset' in liste_att:
+                offset = zarr_ds[self.variable].attrs['offset']
+            else:
+                offset = 0
+            if fillvalue:
+                data = numpy.where(data==fillvalue, numpy.nan, data)*scale_factor + offset
+            else:
+                data = data*scale_factor + offset
+            print(numpy.nanmax(data))
+            assert(numpy.allclose(data, self.ref_data, equal_nan=True))
+
+    def read_direct_nczarr_xarray(self):
+        if (len(self.variable.split('/')) > 1):
+            args={'group': self.variable.rsplit('/', 1)[0]}
+            variable = self.variable.split('/')[-1]
+        else:
+            args = dict()
+            variable = self.variable
+        # consolidated=False have to be set maybe because of metadata pb in nczarr
+        with xarray.open_zarr(self.dataset_path, consolidated=False, decode_times=False, **args) as dataset:
+            data = dataset[variable][self.slice_data]
+            #print(data.encoding)
+            print(data.max().values)
+            assert(numpy.allclose(data.values, self.ref_data, equal_nan=True))
 
     def launch_test(self):
 
@@ -511,15 +614,25 @@ class ReadDataNcZarr(ReadData):
             message = 'nczarr_Dataset'
             super().enregistrer_resultat(message, *resultats)
 
-            # Reading test of nczarr with lighttpd and zarr
-            resultats = super().multiple_launch(self.read_lighttpd_nczarr_zarr)
+            if (self.config.get('TEST_LIGHTTPD')):
+                # Reading test of nczarr with lighttpd and zarr
+                resultats = super().multiple_launch(self.read_lighttpd_nczarr_zarr)
+                message = 'nczarr_fsspec_zarr'
+                super().enregistrer_resultat(message, *resultats)
+
+                # Reading test of nczarr with lighttpd and xarray
+                resultats = super().multiple_launch(self.read_lighttpd_nczarr_xarray)
+                message = 'nczarr_fsspec_xarray'
+                super().enregistrer_resultat(message, *resultats)
+
+            # Reading test of nczarr with zarr
+            resultats = super().multiple_launch(self.read_direct_nczarr_zarr)
             message = 'nczarr_zarr'
             super().enregistrer_resultat(message, *resultats)
 
-            # Reading test of nczarr with lighttpd and xarray
-            resultats = super().multiple_launch(self.read_lighttpd_nczarr_xarray)
+            # Reading test of nczarr with xarray
+            resultats = super().multiple_launch(self.read_direct_nczarr_xarray)
             message = 'nczarr_xarray'
             super().enregistrer_resultat(message, *resultats)
-
 
 
