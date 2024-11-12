@@ -1,0 +1,17 @@
+LOCAL_DATA_DIR: /home/cedric/projet/NetCDF_STREAMING/netcdf-streaming/test_perfo/data/
+RESULT_FILE: performance_acces_lighttpd_MERGE_12H_13LE_s_on_pixel_drilling.txt
+NETCDF_TEST: True
+NETCDF_FILE: MERGE_12H_13LEV_s_on.nc
+XARRAY_TEST: True
+H5PY_TEST: True
+CHUNKINDEX_TEST: True
+ZARR_TEST: True
+ZARR_FILE: MERGE_12H_13LEV.zarr
+NCZARR_TEST: True
+NCZARR_FILE: MERGE_12H_13LEV.nczarr
+SLICE_DATA: (slice(0,13),slice(0,1),slice(280, 281),slice(504,505))
+VARIABLE: t
+LIGHTTPD_CONFIG: http://127.0.0.1:9445
+NUM_ITER: 10
+
+TECHNO: lighttpd

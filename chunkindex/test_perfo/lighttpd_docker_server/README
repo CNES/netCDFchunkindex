@@ -1,0 +1,13 @@
+* To build the docker image
+If you are behind a proxy:
+Modify the proxy configuration to your own 
+If you don't use a proxy:
+Remove or comment the line:
+COPY 80proxy /etc/apt/apt.conf.d/80proxy
+
+Command to build:
+docker build -t server_lighttpd:V1.0.0 .
+
+* To launch the Docker image :
+
+docker run -v [host_data_dir]:/server/data/ -p 9445:8000 server_lighttpd:V1.0.0

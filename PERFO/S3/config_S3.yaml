@@ -1,0 +1,20 @@
+LOCAL_DATA_DIR: /home/cedric/projet/NetCDF_STREAMING/netcdf-streaming/test_perfo/data/
+RESULT_FILE: test.txt
+NETCDF_TEST: False
+NETCDF_FILE: fusion_s_on.nc
+XARRAY_TEST: True
+H5PY_TEST: True
+CHUNKINDEX_TEST: True
+ZARR_TEST: True
+ZARR_FILE: fusion.zarr
+NCZARR_TEST: True
+NCZARR_FILE: fusion.nczarr
+SLICE_DATA: (slice(0,72),slice(280, 281),slice(506,507))
+VARIABLE: uo
+LIGHTTPD_CONFIG: http://127.0.0.1:9445
+NUM_ITER: 1
+TECHNO: S3
+ENDPOINT_URL: http://localhost:9444/s3/
+BUCKET_NAME: data
+KEY: AKIAIOSFODNN7EXAMPLE
+SECRET: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
