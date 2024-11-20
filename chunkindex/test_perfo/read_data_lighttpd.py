@@ -374,13 +374,10 @@ class ReadDataZarr(ReadData):
                 fillvalue = zarr_ds[self.variable].attrs['_FillValue']
             else:
                 fillvalue = False
-            print('fillvalue ' + str(fillvalue))
             if 'missing_value' in liste_att:
                 missing_value = zarr_ds[self.variable].attrs['missing_value']
-                print('missing_value: ' + str(missing_value))
                 if not fillvalue:
                     fillvalue = missing_value
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -421,13 +418,10 @@ class ReadDataZarr(ReadData):
                 fillvalue = zarr_ds[self.variable].attrs['_FillValue']
             else:
                 fillvalue = False
-            print('fillvalue ' + str(fillvalue))
             if 'missing_value' in liste_att:
                 missing_value = zarr_ds[self.variable].attrs['missing_value']
-                print('missing_value: ' + str(missing_value))
                 if not fillvalue:
                     fillvalue = missing_value
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -529,7 +523,6 @@ class ReadDataNcZarr(ReadData):
             else:
                 fillvalue = False
 
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -556,7 +549,6 @@ class ReadDataNcZarr(ReadData):
         # consolidated=False have to be set maybe because of metadata pb in nczarr
         with xarray.open_zarr(store=mapper, consolidated=False, decode_times=False, **args) as dataset:
             data = dataset[variable][self.slice_data]
-            #print(data.encoding)
             print(data.max().values)
             assert(numpy.allclose(data.values, self.ref_data, equal_nan=True))
 
@@ -569,7 +561,6 @@ class ReadDataNcZarr(ReadData):
             else:
                 fillvalue = False
 
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -595,7 +586,6 @@ class ReadDataNcZarr(ReadData):
         # consolidated=False have to be set maybe because of metadata pb in nczarr
         with xarray.open_zarr(self.dataset_path, consolidated=False, decode_times=False, **args) as dataset:
             data = dataset[variable][self.slice_data]
-            #print(data.encoding)
             print(data.max().values)
             assert(numpy.allclose(data.values, self.ref_data, equal_nan=True))
 

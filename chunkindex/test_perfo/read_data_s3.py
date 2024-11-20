@@ -307,13 +307,10 @@ class ReadDataZarr(ReadData):
                 fillvalue = zarr_ds[self.variable].attrs['_FillValue']
             else:
                 fillvalue = False
-            print('fillvalue ' + str(fillvalue))
             if 'missing_value' in liste_att:
                 missing_value = zarr_ds[self.variable].attrs['missing_value']
-                print('missing_value: ' + str(missing_value))
                 if not fillvalue:
                     fillvalue = missing_value
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -340,7 +337,6 @@ class ReadDataZarr(ReadData):
             variable = self.variable
         mapper = self.fs_s3.get_mapper(self.s3_url_dataset_zarr)
         with xarray.open_zarr(store=mapper, consolidated=True, decode_times=False, **args) as dataset:
-            print(dataset)
             data = dataset[variable][self.slice_data]
             print(numpy.nanmax(data))
             assert(numpy.allclose(data, self.ref_data, equal_nan=True))
@@ -431,7 +427,6 @@ class ReadDataNcZarr(ReadData):
         mapper = self.fs_s3.get_mapper(self.s3_url_dataset_nczarr)
         # consolidated=False have to be set maybe because of metadata pb in nczarr
         with xarray.open_zarr(store=mapper, consolidated=False, decode_times=False, **args) as dataset:
-            print(dataset)
             data = dataset[variable][self.slice_data]
             print(data.max().values)
             assert(numpy.allclose(data.values, self.ref_data, equal_nan=True))
