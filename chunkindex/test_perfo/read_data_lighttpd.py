@@ -336,12 +336,8 @@ class ReadDataNetCDF(ReadData):
                 message = 'chunkindex_fsspec_remote'
                 super().enregistrer_resultat(message, *resultats)
             # Test lecture du fichier en direct avec chunkindex h5py local
-            resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_local)
-            message = 'chunkindex_local'
-            super().enregistrer_resultat(message, *resultats)
-            # Test lecture du fichier en direct avec chunkindex h5py remote
-            resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_remote)
-            message = 'chunkindex_remote'
+            resultats = super().multiple_launch(self.read_direct_chunkindex_h5py)
+            message = 'chunkindex'
             super().enregistrer_resultat(message, *resultats)
 
 
