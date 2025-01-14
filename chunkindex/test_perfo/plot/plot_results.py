@@ -87,12 +87,24 @@ class PlotResults():
                         ecart_type[name].append(float(i.split(' ')[2].replace('ms','')))
 
         # Init dict
-        moyenne = dict()
-        ecart_type = dict()
+        moyenne_tmp = dict()
+        ecart_type_tmp = dict()
         # get list of result inside the file
         for i in resultat1:
             method = i.split(':')[0]
-            init_dict(method, moyenne, ecart_type)
+            init_dict(method, moyenne_tmp, ecart_type_tmp)
+        keys = list(moyenne_tmp.keys())
+        print(keys)
+        keys_sorted = reversed(keys)
+        print(keys_sorted)
+        #keys_sorted = ['nczarr_xarray', 'nczarr_zarr', 'nczarr_Dataset', 'zarr_xarray', 'zarr', 'NetCDF4_xarray', 'NetCDF4_h5py', 'NetCDF4_Dataset', 'chunkindex']
+
+        moyenne = dict()
+        ecart_type = dict()
+        for i in keys_sorted:
+            moyenne[i] = moyenne_tmp[i]
+            ecart_type[i] = ecart_type_tmp[i]
+        print(moyenne)
 
         # Fill dict for first file (shuffle on)
         for i in resultat1:
