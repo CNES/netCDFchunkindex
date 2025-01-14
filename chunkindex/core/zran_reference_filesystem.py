@@ -62,6 +62,8 @@ class ZranReferenceFileSystem(ReferenceFileSystem):
                 if f['id'] == 'shuffle':
                     shuffle = True
                     assert (f['elementsize'] == itemsize)
+                elif f['id'] == 'zlib':
+                    pass
                 else:
                     raise NotImplementedError(f"{type(self)} only support the shuffle filter")
 
