@@ -40,7 +40,3 @@ NCZARR_ZARR: True
 NCZARR_ZARR_NAME: nczarr_zarr
 NCZARR_XARRAY: True
 NCZARR_XARRAY_NAME: nczarr_xarray
-PLOT_ZARR: True
-PLOT_NCZARR: True
-PLOT_XARRAY: True
-TECHNO: lighttpd

@@ -1,3 +1,16 @@
+#Copyright 2025 Centre National d'Etudes Spatiales
+#
+#Licensed under the Apache License, Version 2.0 (the "License");
+#you may not use this file except in compliance with the License.
+#You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#Unless required by applicable law or agreed to in writing, software
+#distributed under the License is distributed on an "AS IS" BASIS,
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#See the License for the specific language governing permissions and
+#limitations under the License.
 import chunkindex
 import argparse
 import datetime
@@ -336,12 +349,8 @@ class ReadDataNetCDF(ReadData):
                 message = 'chunkindex_fsspec_remote'
                 super().enregistrer_resultat(message, *resultats)
             # Test lecture du fichier en direct avec chunkindex h5py local
-            resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_local)
-            message = 'chunkindex_local'
-            super().enregistrer_resultat(message, *resultats)
-            # Test lecture du fichier en direct avec chunkindex h5py remote
-            resultats = super().multiple_launch(self.read_lighttpd_chunkindex_h5py_remote)
-            message = 'chunkindex_remote'
+            resultats = super().multiple_launch(self.read_direct_chunkindex_h5py)
+            message = 'chunkindex'
             super().enregistrer_resultat(message, *resultats)
 
 
@@ -378,13 +387,10 @@ class ReadDataZarr(ReadData):
                 fillvalue = zarr_ds[self.variable].attrs['_FillValue']
             else:
                 fillvalue = False
-            print('fillvalue ' + str(fillvalue))
             if 'missing_value' in liste_att:
                 missing_value = zarr_ds[self.variable].attrs['missing_value']
-                print('missing_value: ' + str(missing_value))
                 if not fillvalue:
                     fillvalue = missing_value
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -425,13 +431,10 @@ class ReadDataZarr(ReadData):
                 fillvalue = zarr_ds[self.variable].attrs['_FillValue']
             else:
                 fillvalue = False
-            print('fillvalue ' + str(fillvalue))
             if 'missing_value' in liste_att:
                 missing_value = zarr_ds[self.variable].attrs['missing_value']
-                print('missing_value: ' + str(missing_value))
                 if not fillvalue:
                     fillvalue = missing_value
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -533,7 +536,6 @@ class ReadDataNcZarr(ReadData):
             else:
                 fillvalue = False
 
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -560,7 +562,6 @@ class ReadDataNcZarr(ReadData):
         # consolidated=False have to be set maybe because of metadata pb in nczarr
         with xarray.open_zarr(store=mapper, consolidated=False, decode_times=False, **args) as dataset:
             data = dataset[variable][self.slice_data]
-            #print(data.encoding)
             print(data.max().values)
             assert(numpy.allclose(data.values, self.ref_data, equal_nan=True))
 
@@ -573,7 +574,6 @@ class ReadDataNcZarr(ReadData):
             else:
                 fillvalue = False
 
-            print('fillvalue ' + str(fillvalue))
             if 'scale_factor' in liste_att:
                 scale_factor = zarr_ds[self.variable].attrs['scale_factor']
             else:
@@ -599,7 +599,6 @@ class ReadDataNcZarr(ReadData):
         # consolidated=False have to be set maybe because of metadata pb in nczarr
         with xarray.open_zarr(self.dataset_path, consolidated=False, decode_times=False, **args) as dataset:
             data = dataset[variable][self.slice_data]
-            #print(data.encoding)
             print(data.max().values)
             assert(numpy.allclose(data.values, self.ref_data, equal_nan=True))
 

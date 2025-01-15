@@ -1,3 +1,16 @@
+#Copyright 2025 Centre National d'Etudes Spatiales
+#
+#Licensed under the Apache License, Version 2.0 (the "License");
+#you may not use this file except in compliance with the License.
+#You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#Unless required by applicable law or agreed to in writing, software
+#distributed under the License is distributed on an "AS IS" BASIS,
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#See the License for the specific language governing permissions and
+#limitations under the License.
 import math
 from typing import Iterable
 
@@ -12,11 +25,12 @@ def slice_intersection(s: slice, o: slice) -> slice:
     :param o: other slice
     :return: True if the slices intersect.
     """
-    if (s.step and s.step != 1) or (o.step and o.step != 1):
-        raise NotImplementedError(f"{__name__} function only supports slices with a step of 1")
+#    if (s.step and s.step != 1) or (o.step and o.step != 1):
+#        raise NotImplementedError(f"{__name__} function only supports slices with a step of 1")
     if (s.start < o.stop and s.stop > o.start) \
             or (o.start < s.stop and o.stop > s.start):
-        return slice(max(s.start, o.start), min(s.stop, o.stop), s.step)
+        return slice(max(s.start, o.start), min(s.stop, o.stop), o.step)
+        #return slice(max(s.start, o.start), min(s.stop, o.stop), s.step)
     else:
         return slice(0, 0)
 
