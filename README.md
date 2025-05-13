@@ -17,16 +17,14 @@ compression is applied to full chunks
 a smaller portion of data that can be read using chunkindex approach
 
 ### How do we do that ?
-1. We build an index that contains 32 KB windows of compressed data at some points in the chunk (e g zran
-index points 1 to 4 The 32 KB windows are the decompression context for the deflate algorithm They are
-necessary to start the decompression from these intermediate points
+1. We build an index that contains 32 KB windows of compressed data at some points in the chunk (e.g. zran index points 1 to 4). The 32 KB windows are the decompression context for the deflate algorithm. They are
+necessary to start the decompression from these intermediate points;
 
-2. We identify the index point that lies just before the data we want to extract (e g point 3 and read the
-associated 32 KB window from the index
+2. We identify the index point that lies just before the data we want to extract (e.g. point 3) and read the associated 32 KB window from the index;
 
-3. We initialize the decompression from this index point 3
+3. We initialize the decompression from this index point 3;
 
-4. We decompress the sub chunk to retrieve the data we need
+4. We decompress the sub chunk to retrieve the data we need.
 
 ![sub_chunking](sub_chunk.png)
 
